@@ -1,0 +1,20 @@
+services:
+  postgres:
+    build: ./db
+    container_name: ddb
+    restart: always
+    volumes:
+      - ./ddata:/var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+
+  line-provider:
+    build: ./line-provider
+    ports:
+      - "8001:8000"
+    depends_on:
+      - postgres
+      
+    
+
+  
