@@ -2,7 +2,6 @@ import httpx
 import databases
 import sqlalchemy
 from fastapi import FastAPI, HTTPException
-from numpy import where
 from pydantic import BaseModel
 
 from db import table_bet, table_events
@@ -98,14 +97,13 @@ async def update_status_bet(update_bet: UpdateBet):
         )
 
     # update result
-    query = sqlalchemy.select(table_bet) \
-        .where(table_bet.c.event_id == update_bet.event_id) \
+    query = sqlalchemy.update(table_bet) \
+        .where(table_bet.c.event_id == update_bet.id_event) \
         .values(result=update_bet.status)
 
     await database.execute(query)
 
     return {}
-
 
 
 @app.get('/bets')

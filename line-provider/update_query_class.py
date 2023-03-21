@@ -49,14 +49,13 @@ class QueryUpdate:
         """control db data and user's data"""
 
         control_user_result = await self.control_users_data()
-        control_db_result = await self.control_db_data()
-
         if not control_user_result:
             return {
                 'status': True,
                 'detail': 'error in user s data'
             }
 
+        control_db_result = await self.control_db_data()
         if not control_db_result:
             return {
                 'status': True,

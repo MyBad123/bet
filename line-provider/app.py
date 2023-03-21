@@ -25,7 +25,7 @@ class EventCreate(BaseModel):
     deadline: int
 
 
-DATABASE_URL = 'postgresql://gena:123456@127.0.0.1:5433/bet'
+DATABASE_URL = 'postgresql://gena:123456@ddb:5432/bet'
 database = databases.Database(DATABASE_URL)
 
 
@@ -62,7 +62,7 @@ async def create_event(event: EventCreate):
     query = table_events.insert().values(
         coefficient=event.coefficient,
         deadline=event.deadline,
-        state=EventState.NEW.value
+        state=1
     )
     id_new_obj = await database.execute(query)
 
@@ -105,12 +105,14 @@ async def update_event(event: Event):
 
     await database.execute(query)
 
-    # update bets
+    # update bets update-bet
     async with httpx.AsyncClient() as client:
-        await client.post('http://line-provider:8001/events/', data={
+        r = await client.put('http://bet-maker:8000/update-bet', json={
             'id_event': user_id_obj,
             'status': users_data.get('state')
         })
+        print(r.status_code)
+
 
     # get new data
     query = sqlalchemy.select(table_events) \
