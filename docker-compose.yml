@@ -1,5 +1,5 @@
 services:
-  postgres:
+  my_postgres:
     build: ./db
     container_name: ddb
     restart: always
@@ -7,14 +7,40 @@ services:
       - ./ddata:/var/lib/postgresql/data/pgdata
     ports:
       - "5433:5432"
+    environment:
+      - POSTGRES_USER=gena
+      - POSTGRES_DB=bet
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_PASSWORD=123456
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-U",
+          "gena",
+          "-d",
+          "bet"
+        ]
+      retries: 12
+      interval: 10s
 
   line-provider:
+    container_name: line-provider
     build: ./line-provider
     ports:
-      - "8001:8000"
+      - "8001:8001"
     depends_on:
-      - postgres
-      
-    
+      my_postgres:
+        condition: service_healthy
+    command: sh -c "gunicorn app:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8001"
 
-  
+  bet-maker:
+    container_name: bet-maker
+    build: ./bet-maker
+    ports:
+      - "8000:8000"
+    depends_on:
+      my_postgres:
+        condition: service_healthy
+    command: sh -c "gunicorn app:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000"

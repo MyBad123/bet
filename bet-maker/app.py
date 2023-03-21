@@ -2,18 +2,24 @@ import httpx
 import databases
 import sqlalchemy
 from fastapi import FastAPI, HTTPException
+from numpy import where
 from pydantic import BaseModel
 
 from db import table_bet, table_events
 
 
-DATABASE_URL = 'postgresql://gena:123456@127.0.0.1:5433/bet'
+DATABASE_URL = 'postgresql://gena:123456@ddb:5432/bet'
 database = databases.Database(DATABASE_URL)
 
 
 class NewBet(BaseModel):
     id_event: int
     sum: int
+
+
+class UpdateBet(BaseModel):
+    id_event: int
+    status: int
 
 
 app = FastAPI()
@@ -31,8 +37,11 @@ async def shutdown():
 
 @app.get('/events')
 async def get_events():
+    print('lol1')
     async with httpx.AsyncClient() as client:
-        r = await client.get('http://127.0.0.1:8001/events')
+        r = await client.get('http://line-provider:8001/events')
+
+    print('lol2')
 
     return r.json()
 
@@ -48,7 +57,7 @@ async def create_bet(bet: NewBet):
 
     # control event
     async with httpx.AsyncClient() as client:
-        r = await client.get('http://127.0.0.1:8001/events/' + str(bet.id_event))
+        r = await client.get('http://line-provider:8001/events/' + str(bet.id_event))
 
     if r.status_code == 200:
         event_data: dict = r.json()
@@ -72,6 +81,31 @@ async def create_bet(bet: NewBet):
     await database.execute(query)
 
     return {}
+
+
+@app.put('/update-bet')
+async def update_status_bet(update_bet: UpdateBet):
+    # control status of bet
+    control_status: int = 0
+    for i in range(1, 4):
+        if i == update_bet.status:
+            control_status += 1
+
+    if control_status == 0:
+        raise HTTPException(
+            status_code=400,
+            detail='bad status'
+        )
+
+    # update result
+    query = sqlalchemy.select(table_bet) \
+        .where(table_bet.c.event_id == update_bet.event_id) \
+        .values(result=update_bet.status)
+
+    await database.execute(query)
+
+    return {}
+
 
 
 @app.get('/bets')
